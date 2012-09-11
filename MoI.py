@@ -2,7 +2,7 @@
 import numpy as np
 
 class MoI:
-    '''Main class object.
+    '''Class for calculating the potential in a semi-infinite slice of neural tissue.
     '''
     def __init__(self,
                  set_up_parameters = {
@@ -42,6 +42,10 @@ class MoI:
                   sigma[0]*sigma[1] * z_dist**2)**(-0.5)
 
     def anisotropic_moi(self, charge_pos, elec_pos, imem = 1):
+        """ This function calculates the potential at the position elec_pos = [x,y,z]
+        set up by the charge at position charge_pos = [x,y,z]. To get get the potential
+        from multiple charges, the contributions must be summed up.
+        """
         factor_lower = 1
         factor_upper = 1
         delta = 1
