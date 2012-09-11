@@ -3,6 +3,26 @@ import numpy as np
 
 class MoI:
     '''Class for calculating the potential in a semi-infinite slice of neural tissue.
+    Set-up:
+
+
+              SALINE -> sigma_3 = [sigma_3x, sigma_3y, sigma_3z]
+
+    <----------------------------------------------------> x = + a
+    
+              TISSUE -> sigma_2 = [sigma_2x, sigma_2y, sigma_2z]
+
+
+                   o -> charge_pos = [x,y,z]
+
+
+    <-----------*----------------------------------------> x = -a               
+                 \-> elec_pos = [x,y,z] 
+
+                 ELECTRODE -> sigma_3 = [sigma_3x, sigma_3y, sigma_3z]
+        
+
+
     '''
     def __init__(self,
                  set_up_parameters = {
@@ -45,6 +65,7 @@ class MoI:
         """ This function calculates the potential at the position elec_pos = [x,y,z]
         set up by the charge at position charge_pos = [x,y,z]. To get get the potential
         from multiple charges, the contributions must be summed up.
+        
         """
         factor_lower = 1
         factor_upper = 1
