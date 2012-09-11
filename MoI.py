@@ -61,12 +61,25 @@ class MoI:
                   sigma[0]*sigma[2] * y_dist**2 +\
                   sigma[0]*sigma[1] * z_dist**2)**(-0.5)
 
+    def in_domain(self, elec_pos, charge_pos):
+        """ Checks if elec_pos is within valid area.
+        Otherwise raise exception."""
+        #import pdb; pdb.set_trace()
+        if not (-self.a <= elec_pos[0] <= self.a):
+            raise RuntimeError("Electrode not within valid range")
+        if not (-self.a <= charge_pos[0] <= self.a):
+            raise RuntimeError("Charge not within valid range")
+        dist = np.sqrt( np.sum(np.array(charge_pos) - np.array(elec_pos))**2)
+        if dist < 1e-6:
+            raise RuntimeError("Charge and electrode at same position!")
+
     def anisotropic_moi(self, charge_pos, elec_pos, imem = 1):
         """ This function calculates the potential at the position elec_pos = [x,y,z]
         set up by the charge at position charge_pos = [x,y,z]. To get get the potential
         from multiple charges, the contributions must be summed up.
         
         """
+        self.in_domain(elec_pos, charge_pos) # Check if valid positions
         factor_lower = 1
         factor_upper = 1
         delta = 1
