@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
+from sys import stdout
 
 class MoI:
     '''Class for calculating the potential in a semi-infinite slice of neural tissue.
@@ -38,6 +39,9 @@ class MoI:
         self.sigma_1 = set_up_parameters['sigma_1']
         self.sigma_2 = set_up_parameters['sigma_2']
         self.sigma_3 = set_up_parameters['sigma_3']
+        if len(self.sigma_1) != 3 or len(self.sigma_2) != 3\
+           or len(self.sigma_3) != 3:
+            raise ValueError("Conductivities sigma_{1,2,3} must be arrays of length 3")
         self.slice_thickness = set_up_parameters['slice_thickness']
         self.a = self.slice_thickness/2
         self.steps = set_up_parameters['steps']
@@ -64,13 +68,15 @@ class MoI:
     def in_domain(self, elec_pos, charge_pos):
         """ Checks if elec_pos is within valid area.
         Otherwise raise exception."""
-        #import pdb; pdb.set_trace()
         if not (-self.a <= elec_pos[0] <= self.a):
+            print "Electrode position: ", elec_pos
             raise RuntimeError("Electrode not within valid range")
         if not (-self.a <= charge_pos[0] <= self.a):
+            print "Charge position: ", charge_pos
             raise RuntimeError("Charge not within valid range")
-        dist = np.sqrt( np.sum(np.array(charge_pos) - np.array(elec_pos))**2)
+        dist = np.sqrt( np.sum( (np.array(charge_pos) - np.array(elec_pos))**2 ))
         if dist < 1e-6:
+            print "Charge position: ", charge_pos, "Electrode position: ", elec_pos
             raise RuntimeError("Charge and electrode at same position!")
 
     def anisotropic_moi(self, charge_pos, elec_pos, imem = 1):
@@ -87,8 +93,7 @@ class MoI:
         x, y, z = elec_pos[:]
         n = 1
         phi = self._R(self.sigma_2, x - x0, y - y0, z - z0)
-        #print phi
-        #while np.abs(delta) >= 1e-3:
+
         while n < self.steps:
             p_upper = (2*n - 1) * self.a + x0
             p_lower = (2*n - 1) * self.a - x0
@@ -108,9 +113,71 @@ class MoI:
                                       y - y0, z-z0) \
                    +factor_upper * self._R(self.sigma_2, x_dist_upper, \
                                       y - y0, z-z0)
-            #print delta
             phi += delta
             n += 1
-        #pl.show()
         phi *= imem/(4*np.pi)
         return phi
+
+    def potential_at_elec(self, charge_pos, elec_pos, ext_sim_dict):
+        """ Calculate the potential at electrode 'elec_index' """
+        r = ext_sim_dict['elec_radius']
+        elec_pos_1 = [elec_pos[0], elec_pos[1] + r, elec_pos[2]]
+        elec_pos_2 = [elec_pos[0], elec_pos[1] - r, elec_pos[2]]
+        elec_pos_3 = [elec_pos[0], elec_pos[1], elec_pos[2] + r]
+        elec_pos_4 = [elec_pos[0], elec_pos[1], elec_pos[2] - r]
+        phi_center = self.anisotropic_moi(charge_pos, elec_pos)    
+        phi_1 = self.anisotropic_moi(charge_pos, elec_pos_1)    
+        phi_2 = self.anisotropic_moi(charge_pos, elec_pos_2)
+        phi_3 = self.anisotropic_moi(charge_pos, elec_pos_3)
+        phi_4 = self.anisotropic_moi(charge_pos, elec_pos_4)
+        return (phi_center + phi_1 + phi_2 + phi_3 + phi_4)/5
+
+    def make_mapping(self, neur_dict, ext_sim_dict):
+        """ Make a mapping given two arrays of electrode positions"""
+        print '\033[1;35mMaking mapping for %s...\033[1;m' %neur_dict["name"]
+        neur_input_folder = ext_sim_dict['neural_input'] +\
+                            neur_dict['name'] + '/'
+        comp_coors = np.load(neur_input_folder+ 'coor.npy')
+        n_compartments = len(comp_coors[0,:])
+        n_elecs = ext_sim_dict['n_elecs']
+        mapping = np.zeros((n_elecs,n_compartments))
+        steps = ext_sim_dict['moi_steps']
+        elec_x = ext_sim_dict['elec_x'] # Scalar
+        elec_y = ext_sim_dict['elec_y'] # Array
+        elec_z = ext_sim_dict['elec_z'] # Array    
+        for comp in xrange(n_compartments):
+            percentage = (comp+1)*100/n_compartments
+            stdout.write("\r%d %% complete" % percentage)
+            stdout.flush()
+            for elec in xrange(n_elecs):
+                elec_pos = [elec_x, elec_y[elec], elec_z[elec]]
+                charge_pos = comp_coors[:,comp]
+                if ext_sim_dict['include_elec']:
+                    mapping[elec, comp] += self.potential_at_elec(\
+                        charge_pos, elec_pos, ext_sim_dict)
+                else:
+                    mapping[elec, comp] += self.anisotropic_moi(\
+                        charge_pos, elec_pos)
+        print ''
+        np.save(ext_sim_dict['output_folder'] + 'mappings/map_%s.npy' \
+                %(neur_dict['name']), mapping)
+        return mapping
+
+    def find_signal_at_electrodes(self, neur_dict, ext_sim_dict, mapping):
+        """ Calculating the potential at the electrodes,
+        given the mapping from the make_mapping method."""
+        
+        print '\033[1;35mFinding signal at electrodes ...\033[1;m'
+        neur_input_folder = ext_sim_dict['neural_input'] +\
+                            neur_dict['name'] + '/'
+        imem =  np.load(neur_input_folder + 'imem.npy')
+        ntsteps = len(imem[0,:])
+        n_elecs = ext_sim_dict['n_elecs']
+        signals = np.zeros((n_elecs, ntsteps))
+        n_compartments = len(imem[:,0])
+        for elec in xrange(n_elecs):
+            for comp in xrange(n_compartments):
+                signals[elec,:] += mapping[elec,comp] * imem[comp, :]
+            np.save(ext_sim_dict['output_folder'] + 'signals/signal_%s.npy' \
+                %(neur_dict['name']), signals)           
+        return signals
