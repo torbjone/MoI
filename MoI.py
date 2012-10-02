@@ -118,9 +118,8 @@ class MoI:
         phi *= imem/(4*np.pi)
         return phi
 
-    def potential_at_elec(self, charge_pos, elec_pos, ext_sim_dict, imem=1):
+    def potential_at_elec(self, charge_pos, elec_pos, r, imem=1):
         """ Calculate the potential at electrode 'elec_index' """
-        r = ext_sim_dict['elec_radius']
         elec_pos_1 = [elec_pos[0], elec_pos[1] + r, elec_pos[2]]
         elec_pos_2 = [elec_pos[0], elec_pos[1] - r, elec_pos[2]]
         elec_pos_3 = [elec_pos[0], elec_pos[1], elec_pos[2] + r]
@@ -154,7 +153,7 @@ class MoI:
                 charge_pos = comp_coors[:,comp]
                 if ext_sim_dict['include_elec']:
                     mapping[elec, comp] += self.potential_at_elec(\
-                        charge_pos, elec_pos, ext_sim_dict)
+                        charge_pos, elec_pos, ext_sim_dict['elec_radius'])
                 else:
                     mapping[elec, comp] += self.anisotropic_moi(\
                         charge_pos, elec_pos)
