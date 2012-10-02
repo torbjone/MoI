@@ -66,7 +66,7 @@ class MoI:
                   sigma[0]*sigma[1] * z_dist**2)**(-0.5)
 
     def in_domain(self, elec_pos, charge_pos):
-        """ Checks if elec_pos is within valid area.
+        """ Checks if elec_pos and charge_pos is within valid area.
         Otherwise raise exception."""
         if not (-self.a <= elec_pos[0] <= self.a):
             print "Electrode position: ", elec_pos
@@ -79,7 +79,7 @@ class MoI:
             print "Charge position: ", charge_pos, "Electrode position: ", elec_pos
             raise RuntimeError("Charge and electrode at same position!")
 
-    def anisotropic_moi(self, charge_pos, elec_pos, imem = 1):
+    def anisotropic_moi(self, charge_pos, elec_pos, imem=1):
         """ This function calculates the potential at the position elec_pos = [x,y,z]
         set up by the charge at position charge_pos = [x,y,z]. To get get the potential
         from multiple charges, the contributions must be summed up.
@@ -118,18 +118,18 @@ class MoI:
         phi *= imem/(4*np.pi)
         return phi
 
-    def potential_at_elec(self, charge_pos, elec_pos, ext_sim_dict):
+    def potential_at_elec(self, charge_pos, elec_pos, ext_sim_dict, imem=1):
         """ Calculate the potential at electrode 'elec_index' """
         r = ext_sim_dict['elec_radius']
         elec_pos_1 = [elec_pos[0], elec_pos[1] + r, elec_pos[2]]
         elec_pos_2 = [elec_pos[0], elec_pos[1] - r, elec_pos[2]]
         elec_pos_3 = [elec_pos[0], elec_pos[1], elec_pos[2] + r]
         elec_pos_4 = [elec_pos[0], elec_pos[1], elec_pos[2] - r]
-        phi_center = self.anisotropic_moi(charge_pos, elec_pos)    
-        phi_1 = self.anisotropic_moi(charge_pos, elec_pos_1)    
-        phi_2 = self.anisotropic_moi(charge_pos, elec_pos_2)
-        phi_3 = self.anisotropic_moi(charge_pos, elec_pos_3)
-        phi_4 = self.anisotropic_moi(charge_pos, elec_pos_4)
+        phi_center = self.anisotropic_moi(charge_pos, elec_pos, imem)    
+        phi_1 = self.anisotropic_moi(charge_pos, elec_pos_1, imem)    
+        phi_2 = self.anisotropic_moi(charge_pos, elec_pos_2, imem)
+        phi_3 = self.anisotropic_moi(charge_pos, elec_pos_3, imem)
+        phi_4 = self.anisotropic_moi(charge_pos, elec_pos_4, imem)
         return (phi_center + phi_1 + phi_2 + phi_3 + phi_4)/5
 
     def make_mapping(self, neur_dict, ext_sim_dict):
