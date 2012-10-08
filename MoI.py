@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 from sys import stdout
+import os
 
 class MoI:
     '''Class for calculating the potential in a semi-infinite slice of neural tissue.
@@ -134,9 +135,9 @@ class MoI:
     def make_mapping(self, neur_dict, ext_sim_dict):
         """ Make a mapping given two arrays of electrode positions"""
         print '\033[1;35mMaking mapping for %s...\033[1;m' %neur_dict["name"]
-        neur_input_folder = ext_sim_dict['neural_input'] +\
-                            neur_dict['name'] + '/'
-        comp_coors = np.load(neur_input_folder+ 'coor.npy')
+        neur_input = os.path.join(ext_sim_dict['neural_input'],\
+                                         neur_dict['name'], 'coor.npy')
+        comp_coors = np.load(neur_input)
         n_compartments = len(comp_coors[0,:])
         n_elecs = ext_sim_dict['n_elecs']
         mapping = np.zeros((n_elecs,n_compartments))
@@ -158,8 +159,8 @@ class MoI:
                     mapping[elec, comp] += self.anisotropic_moi(\
                         charge_pos, elec_pos)
         print ''
-        np.save(ext_sim_dict['output_folder'] + 'mappings/map_%s.npy' \
-                %(neur_dict['name']), mapping)
+        np.save(os.path.join(ext_sim_dict['output_folder'], 'mappings', 'map_%s.npy' \
+                %(neur_dict['name'])), mapping)
         return mapping
 
     def find_signal_at_electrodes(self, neur_dict, ext_sim_dict, mapping):
@@ -177,6 +178,6 @@ class MoI:
         for elec in xrange(n_elecs):
             for comp in xrange(n_compartments):
                 signals[elec,:] += mapping[elec,comp] * imem[comp, :]
-            np.save(ext_sim_dict['output_folder'] + 'signals/signal_%s.npy' \
-                %(neur_dict['name']), signals)           
+            np.save(os.path.join(ext_sim_dict['output_folder'], 'signals', \
+                                 'signal_%s.npy' %(neur_dict['name'])), signals)           
         return signals

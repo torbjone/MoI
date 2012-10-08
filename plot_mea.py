@@ -1,7 +1,9 @@
 import numpy as np
 import pylab as pl
 from ipdb import set_trace
+import os
 def plot_mea(neuron_dict, ext_sim_dict, neural_sim_dict):
+    print "Plotting MEA"
     plot_elecs_and_neurons(neuron_dict, ext_sim_dict, neural_sim_dict)
     
 def plot_elecs_and_neurons(neuron_dict, ext_sim_dict, neural_sim_dict):
@@ -13,8 +15,8 @@ def plot_elecs_and_neurons(neuron_dict, ext_sim_dict, neural_sim_dict):
                 marker='$E%i$'%elec, markersize=20 )    
     legends = []
     for i, neur in enumerate(neuron_dict):
-        folder = neural_sim_dict['output_folder'] + neuron_dict[neur]['name']
-        coor = np.load(folder + '/coor.npy')
+        folder = os.path.join(neural_sim_dict['output_folder'], neuron_dict[neur]['name'])
+        coor = np.load(os.path.join(folder,'coor.npy'))
         x,y,z = coor
         n_compartments = len(x)
         fig = pl.figure(figsize=[10, 10])
@@ -51,15 +53,17 @@ def plot_elecs_and_neurons(neuron_dict, ext_sim_dict, neural_sim_dict):
                        c=xcoords[argsort], edgecolors='none', cmap='gray')
         ax_all.plot(zmid[0], ymid[0], marker='$%i$'%i, markersize=20, label='%i: %s' %(i, neur))
         #legends.append('%i: %s' %(i, neur))
+        ax.axis(ext_sim_dict['plot_range'])
         ax.axis('equal')
         ax.axis(ext_sim_dict['plot_range'])
         ax.set_xlabel('z [mm]')
         ax.set_ylabel('y [mm]')
-        fig.savefig(neural_sim_dict['output_folder'] + \
-                   neuron_dict[neur]['name'] + '/fig.png')
+        fig.savefig(os.path.join(neural_sim_dict['output_folder'],\
+                  'neuron_figs', '%s.png' % neur))
     ax_all.axis('equal')
+    ax.axis(ext_sim_dict['plot_range'])
     ax_all.set_xlabel('z [mm]')
     ax_all.set_ylabel('y [mm]')
     ax_all.legend()
-    fig_all.savefig(neural_sim_dict['output_folder'] + '/fig.png')
+    fig_all.savefig(os.path.join(neural_sim_dict['output_folder'], 'fig.png'))
  
