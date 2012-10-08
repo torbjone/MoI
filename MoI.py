@@ -168,9 +168,9 @@ class MoI:
         given the mapping from the make_mapping method."""
         
         print '\033[1;35mFinding signal at electrodes ...\033[1;m'
-        neur_input_folder = ext_sim_dict['neural_input'] +\
-                            neur_dict['name'] + '/'
-        imem =  np.load(neur_input_folder + 'imem.npy')
+        neur_input = os.path.join(ext_sim_dict['neural_input'],
+                            neur_dict['name'], 'imem.npy')
+        imem =  np.load(neur_input)
         ntsteps = len(imem[0,:])
         n_elecs = ext_sim_dict['n_elecs']
         signals = np.zeros((n_elecs, ntsteps))
