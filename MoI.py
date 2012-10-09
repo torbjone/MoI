@@ -167,7 +167,7 @@ class MoI:
         """ Calculating the potential at the electrodes,
         given the mapping from the make_mapping method."""
         
-        print '\033[1;35mFinding signal at electrodes ...\033[1;m'
+        print '\033[1;35mFinding signal at electrodes from %s ...\033[1;m' % neur_dict['name']
         neur_input = os.path.join(ext_sim_dict['neural_input'],
                             neur_dict['name'], 'imem.npy')
         imem =  np.load(neur_input)
