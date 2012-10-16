@@ -177,7 +177,7 @@ class MoI:
         n_compartments = len(imem[:,0])
         for elec in xrange(n_elecs):
             for comp in xrange(n_compartments):
-                signals[elec,:] += mapping[elec,comp] * imem[comp, :]
-            np.save(os.path.join(ext_sim_dict['output_folder'], 'signals', \
+                signals[elec,:] += mapping[elec, comp] * imem[comp,:]
+        np.save(os.path.join(ext_sim_dict['output_folder'], 'signals', \
                                  'signal_%s.npy' %(neur_dict['name'])), signals)           
         return signals
