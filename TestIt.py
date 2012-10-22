@@ -2,7 +2,7 @@ import random
 import unittest
 import numpy as np
 from MoI import MoI
-
+import pylab as pl
 class TestMoI(unittest.TestCase):
 
     def test_homogeneous(self):
@@ -86,6 +86,39 @@ class TestMoI(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 Moi.anisotropic_moi(valid_position, pos)
                 Moi.anisotropic_moi(pos, valid_position)
+
+
+    def test_very_anisotropic(self):
+        """ Made to find error in very anisotropic case close to upper layer
+        """
+        set_up_parameters = {
+            'sigma_1': [0.0, 0.0, 0.0], # Below electrode
+            'sigma_2': [0.1, 0.1, 1.0], # Tissue
+            'sigma_3': [3.0, 3.0, 3.0], # Saline
+            'slice_thickness': 0.2,
+            'steps' : 2}
+        Moi = MoI(set_up_parameters = set_up_parameters)
+        imem = 1.2
+        a = set_up_parameters['slice_thickness']/2
+        high_position = [a - 0.01, 0, 0]
+        low_position = [-a + 0.01, 0, 0]
+        z_array = np.linspace(-0.5,0.5,100)
+        y_array = np.linspace(-0.1,0.1,10)
+        values_high = []
+        values_low = []
+        for y in y_array:
+            for z in z_array:
+                values_high.append([z,y, Moi.anisotropic_moi([-0.1,y,z], high_position)])
+                values_low.append([z,y, Moi.anisotropic_moi([-0.1,y,z], low_position)])
+        values_high = np.array(values_high)
+        values_low = np.array(values_low)
+        pl.subplot(211)
+        pl.scatter(values_high[:,0], values_high[:,1], c = values_high[:,2])
+        pl.axis('equal')
+        pl.subplot(212)
+        pl.scatter(values_low[:,0], values_low[:,1], c = values_low[:,2])
+        pl.axis('equal')
+        pl.show()
                 
 if __name__ == '__main__':
     unittest.main()
