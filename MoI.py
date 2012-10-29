@@ -51,7 +51,7 @@ class MoI:
         if sigma[0]*sigma[1]*sigma[2] == 0:
             return 0
         else:
-            return sigma[0] * sigma[1] * sigma[2]/\
+            return sigma[2] * sigma[1] * sigma[2]/\
                    (sigma[1]*sigma[2]*p**2 + \
                     sigma[0]*sigma[2]*y_dist**2 + sigma[0]*sigma[1]*z_dist**2)
 
@@ -110,10 +110,17 @@ class MoI:
                                      p_lower, y-y0, z-z0)
                 factor_upper *= self._W2X(self.sigma_2, self.sigma_1,\
                                      p_upper, y-y0, z-z0)
-            delta = factor_lower * self._R(self.sigma_2, x_dist_lower,\
-                                      y - y0, z-z0) \
-                   +factor_upper * self._R(self.sigma_2, x_dist_upper, \
-                                      y - y0, z-z0)
+            delta = factor_upper * self._R(self.sigma_2, x_dist_upper, y - y0, z-z0) +\
+                    factor_lower * self._R(self.sigma_2, x_dist_lower, y - y0, z-z0)
+            #print "\n", elec_pos
+            #print "p_upper: ", p_upper 
+            #print "p_lower: ",p_lower 
+            #print "x_dist_lower: ",x_dist_lower
+            #print "x_dist_upper: ",x_dist_upper
+            #print "factor_lower: ", factor_lower
+            #print "factor_upper: ",factor_upper
+            #print "phi",phi
+            #print "delta",delta
             phi += delta
             n += 1
         phi *= imem/(4*np.pi)
@@ -131,6 +138,22 @@ class MoI:
         phi_3 = self.anisotropic_moi(charge_pos, elec_pos_3, imem)
         phi_4 = self.anisotropic_moi(charge_pos, elec_pos_4, imem)
         return (phi_center + phi_1 + phi_2 + phi_3 + phi_4)/5
+
+    def potential_at_elec_big_average(self, charge_pos, elec_pos, r, imem=1):
+        """ Calculate the potential at electrode 'elec_index' with many points"""
+        #import pylab as pl
+        number_of_points = 0
+        splits = 100
+        phi = 0
+        for n_z in xrange(splits):
+            for n_y in xrange(splits):
+                e_z = -r + 2*n_z*r/(splits-1)
+                e_y = -r + 2*n_y*r/(splits-1)
+                if not np.sqrt(e_z**2 + e_y**2) <= r:
+                    continue
+                number_of_points += 1
+                phi += self.anisotropic_moi(charge_pos, [elec_pos[0], e_z, e_y], imem)
+        return phi/number_of_points
 
     def make_mapping(self, neur_dict, ext_sim_dict):
         """ Make a mapping given two arrays of electrode positions"""
