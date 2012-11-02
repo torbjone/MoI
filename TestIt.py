@@ -125,7 +125,7 @@ class TestMoI(unittest.TestCase):
         pl.show()
 
 
-    def test_big_average(self):
+    def atest_big_average(self):
         """ Testing average over electrode with many values"""
         set_up_parameters = {
             'sigma_1': [0.0, 0.0, 0.0], # Below electrode
@@ -139,6 +139,68 @@ class TestMoI(unittest.TestCase):
         charge_pos = [0, 0, 0]
         elec_pos = [-a, 0,0]
         phi = Moi.potential_at_elec_big_average(charge_pos, elec_pos, r)
-                
+
+
+    def test_moi_line_source(self):
+        """ Testing infinite isotropic moi line source formula"""
+        set_up_parameters = {
+            'sigma_1': [0.0, 0.0, 0.0], # Below electrode
+            'sigma_2': [0.3, 0.3, 0.3], # Tissue
+            'sigma_3': [0.3, 0.3, 0.3], # Saline
+            'slice_thickness': 0.2,
+            'steps' : 20}
+        a = set_up_parameters['slice_thickness']/2.
+        Moi = MoI(set_up_parameters = set_up_parameters)
+
+        comp_start = [-.00, -.1, -.05]
+        comp_end = [-0.07, .1, .01]
+        comp_mid = (np.array(comp_end) + np.array(comp_start))/2
+        comp_length = np.sqrt( np.sum((np.array(comp_end) - np.array(comp_start))**2))
+        elec_y = np.linspace(-0.1, 0.1, 10)
+        elec_z = np.linspace(-0.1, 0.1, 10)
+        phi_LS = []
+        phi_PS = []
+        phi_PSi = []
+        y = []
+        z = []
+        points = 1000
+        s = np.array(comp_end) - np.array(comp_start)
+        ds = s / (points)
+        
+        for z_pos in xrange(len(elec_z)):
+            for y_pos in xrange(len(elec_y)):
+                phi_LS.append(Moi.line_source_moi(comp_start, comp_end, \
+                                           comp_length, [-0.1, elec_y[y_pos], elec_z[z_pos]], imem=1))
+                phi_PS.append(Moi.anisotropic_moi(comp_mid, [-0.1, elec_y[y_pos], elec_z[z_pos]]))
+                delta = 0
+                for step in xrange(points+1):
+                    pos = comp_start + ds*step
+                    delta += Moi.anisotropic_moi(\
+                        pos, [-0.1, elec_y[y_pos], elec_z[z_pos]], imem = 1./(points+1))
+                phi_PSi.append(delta)
+                                       
+                z.append(elec_z[z_pos])
+                y.append(elec_y[y_pos])
+        import pylab as pl
+        pl.subplot(411)
+        pl.scatter(z,y, c=phi_LS)
+        pl.axis('equal')
+        pl.colorbar()
+        pl.subplot(412)
+        pl.scatter(z,y, c=phi_PS)
+        pl.axis('equal')
+        pl.colorbar()
+        pl.subplot(413)
+        pl.scatter(z,y, c=phi_PSi)
+        pl.axis('equal')
+        pl.colorbar()
+
+        
+        pl.subplot(414)       
+        pl.scatter(z,y, c=(np.array(phi_LS) - np.array(phi_PSi)))
+        pl.axis('equal')
+        pl.colorbar()       
+        pl.savefig('line_source_test.png')
+        
 if __name__ == '__main__':
     unittest.main()

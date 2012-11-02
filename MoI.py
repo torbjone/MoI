@@ -126,6 +126,36 @@ class MoI:
         phi *= imem/(4*np.pi)
         return phi
 
+    def line_source_moi(self, comp_start, comp_end, comp_length, elec_pos, imem=1):
+        """ Calculate the moi line source potential"""
+        self.in_domain(elec_pos, comp_start)
+        self.in_domain(elec_pos, comp_end)
+
+        x0, y0, z0 = comp_start[:]
+        x1, y1, z1 = comp_end[:]
+        x, y, z = elec_pos[:]
+        dx = x1 - x0
+        dy = y1 - y0
+        dz = z1 - z0
+        a_z = z - z0
+        a_y = y - y0
+        def _omega(a_x):
+            num = comp_length**2 - a_z * dz - a_y * dy - a_x * dx + \
+                  comp_length*np.sqrt((a_x - dx)**2 + (a_y - dy)**2 + (a_z - dz)**2)
+            den = - a_z * dz - a_y * dy - a_x * dx + \
+                  comp_length*np.sqrt(a_x**2 + a_y**2 + a_z**2)
+            return np.log(num/den)
+        phi = _omega(-self.a - x0)
+        n = 1
+        while n < self.steps:
+            delta = _omega((4*n-1)*self.a - x0) + _omega(-(4*n+1)*self.a - x0)
+            phi += ((self.sigma_2[0] - self.sigma_3[0])/(self.sigma_2[0] + self.sigma_3[0]))**n *delta
+            n += 1   
+        phi *= 2*imem/(4*np.pi*self.sigma_2[0] * comp_length)
+        return phi
+
+
+
     def potential_at_elec(self, charge_pos, elec_pos, r, imem=1):
         """ Calculate the potential at electrode 'elec_index' """
         elec_pos_1 = [elec_pos[0], elec_pos[1] + r, elec_pos[2]]
