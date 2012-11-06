@@ -39,17 +39,21 @@ class MoI:
         self.sigma_1 = set_up_parameters['sigma_1']
         self.sigma_2 = set_up_parameters['sigma_2']
         self.sigma_3 = set_up_parameters['sigma_3']
-        if len(self.sigma_1) == 3 or len(self.sigma_2) == 3\
-           or len(self.sigma_3) == 3:
-            print "Conductivities sigma_{1,2,3} must be scalars"
-            if (sigma_1[0] == sigma_1[1] == sigma_1[2]) and \
-               (sigma_2[0] == sigma_2[1] == sigma_2[2]) and \
-               (sigma_3[0] == sigma_3[1] == sigma_3[2]):
+        try:
+            if len(self.sigma_1) == 3 or len(self.sigma_2) == 3\
+                   or len(self.sigma_3) == 3:
+                print "Conductivities sigma_{1,2,3} must be scalars"
+            if (self.sigma_1[0] == self.sigma_1[1] == self.sigma_1[2]) and \
+               (self.sigma_2[0] == self.sigma_2[1] == self.sigma_2[2]) and \
+               (self.sigma_3[0] == self.sigma_3[1] == self.sigma_3[2]):
                 self.sigma_1 = self.sigma_1[0]
                 self.sigma_2 = self.sigma_2[0]
                 self.sigma_3 = self.sigma_3[0]
             else:
                 raise ValueError("Can't handle anisotropic yet!")
+        except TypeError:
+            pass
+            
         self.slice_thickness = set_up_parameters['slice_thickness']
         self.a = self.slice_thickness/2
         self.steps = set_up_parameters['steps']
@@ -69,7 +73,7 @@ class MoI:
             print "Charge position: ", charge_pos, "Electrode position: ", elec_pos
             raise RuntimeError("Charge and electrode at same position!")
 
-    def anisotropic_moi(self, charge_pos, elec_pos, imem=1):
+    def aanisotropic_moi(self, charge_pos, elec_pos, imem=1):
         """ This function calculates the potential at the position elec_pos = [x,y,z]
         set up by the charge at position charge_pos = [x,y,z]. To get get the potential
         from multiple charges, the contributions must be summed up.
@@ -153,12 +157,12 @@ class MoI:
         W21 = (self.sigma_2 - self.sigma_1)/(self.sigma_2 + self.sigma_1)
         while n < self.steps:
             if n == 0:
-                phi += W23 * _omega(x + x0 - (4*n + 2)*a) +\
-                       W21 * _omega(x + x0 + (4*n + 2)*a)
+                phi += W23 * _omega(x + x0 - (4*n + 2)*self.a) +\
+                       W21 * _omega(x + x0 + (4*n + 2)*self.a)
             else:
-                phi += (W32*W21)**n *(\
-                    W23 * _omega(x + x0 - (4*n + 2)*a) + W21 * _omega(x + x0 + (4*n + 2)*a) +\
-                    _omega(x - x0 + 4*n*a) + _omega(x - x0 - 4*n*a) )
+                phi += (W23*W21)**n *(\
+                    W23 * _omega(x + x0 - (4*n + 2)*self.a) + W21 * _omega(x + x0 + (4*n + 2)*self.a) +\
+                    _omega(x - x0 + 4*n*self.a) + _omega(x - x0 - 4*n*self.a) )
             n += 1
         phi *= imem/(4*np.pi*self.sigma_2)
         return phi
@@ -247,7 +251,7 @@ class MoI:
                 if not np.sqrt(e_z**2 + e_y**2) <= r:
                     continue
                 number_of_points += 1
-                phi += self.anisotropic_moi(charge_pos, [elec_pos[0], e_z, e_y], imem)
+                phi += self.isotropic_moi(charge_pos, [elec_pos[0], e_z, e_y], imem)
         return phi/number_of_points
 
     def make_mapping(self, neur_dict, ext_sim_dict):
@@ -282,7 +286,7 @@ class MoI:
                         mapping[elec, comp] += self.line_source_moi(\
                             comp_start, comp_end, comp_length, elec_pos)
                     else:
-                        mapping[elec, comp] += self.anisotropic_moi(\
+                        mapping[elec, comp] += self.isotropic_moi(\
                             charge_pos, elec_pos)
         print ''
         np.save(os.path.join(ext_sim_dict['output_folder'], 'mappings', 'map_%s.npy' \

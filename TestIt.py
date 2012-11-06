@@ -5,13 +5,13 @@ from MoI import MoI
 import pylab as pl
 class TestMoI(unittest.TestCase):
 
-    def atest_homogeneous(self):
+    def test_homogeneous(self):
         """If saline and tissue has same conductivity, MoI formula
         should return 2*(inf homogeneous point source)."""
         set_up_parameters = {
-            'sigma_1': [0.0, 0.0, 0.0], # Below electrode
-            'sigma_2': [0.3, 0.3, 0.3], # Tissue
-            'sigma_3': [0.3, 0.3, 0.3], # Saline
+            'sigma_1': 0.0, # Below electrode
+            'sigma_2': 0.3, # Tissue
+            'sigma_3': 0.3, # Saline
             'slice_thickness': 0.2,
             'steps' : 20}
         Moi = MoI(set_up_parameters = set_up_parameters)
@@ -19,40 +19,37 @@ class TestMoI(unittest.TestCase):
         charge_pos = [0,0,0]
         elec_pos = [-set_up_parameters['slice_thickness']/2, 0, 0]
         dist = np.sqrt( np.sum(np.array(charge_pos) - np.array(elec_pos))**2)
-            
-        expected_ans = 2/(4*np.pi*set_up_parameters['sigma_2'][0])\
+        expected_ans = 2/(4*np.pi*set_up_parameters['sigma_2'])\
                        * imem/(dist)
-        returned_ans = Moi.anisotropic_moi(charge_pos, elec_pos, imem)
+        returned_ans = Moi.isotropic_moi(charge_pos, elec_pos, imem)
         self.assertAlmostEqual(expected_ans, returned_ans, 6)
 
-    def atest_saline_effect(self):
+    def test_saline_effect(self):
         """ If saline conductivity is bigger than tissue conductivity, the
         value of 2*(inf homogeneous point source) should be bigger
         than value returned from MoI"""
         set_up_parameters = {
-            'sigma_1': [0.0, 0.0, 0.0], # Below electrode
-            'sigma_2': [0.3, 0.3, 0.3], # Tissue
-            'sigma_3': [3.0, 3.0, 3.0], # Saline
+            'sigma_1': 0.0, # Below electrode
+            'sigma_2': 0.3, # Tissue
+            'sigma_3': 3.0, # Saline
             'slice_thickness': 0.2,
             'steps' : 20}
         Moi = MoI(set_up_parameters = set_up_parameters)
         imem = 1.2
         charge_pos = [0,0,0]
         elec_pos = [-set_up_parameters['slice_thickness']/2, 0, 0]
-        dist = np.sqrt( np.sum(np.array(charge_pos) - np.array(elec_pos))**2)
-            
-        expected_ans = 2/(4*np.pi*set_up_parameters['sigma_2'][0])\
-                       * imem/(dist)
-        returned_ans = Moi.anisotropic_moi(charge_pos, elec_pos, imem)
+        dist = np.sqrt( np.sum((np.array(charge_pos) - np.array(elec_pos))**2))
+        expected_ans = 2/(4*np.pi*set_up_parameters['sigma_2']) * imem/dist
+        returned_ans = Moi.isotropic_moi(charge_pos, elec_pos, imem)
         self.assertGreater(expected_ans, returned_ans)
 
-    def atest_charge_closer(self):
+    def test_charge_closer(self):
         """ If charge is closer to electrode, the potential should
         be greater"""
         set_up_parameters = {
-            'sigma_1': [0.0, 0.0, 0.0], # Below electrode
-            'sigma_2': [0.3, 0.3, 0.3], # Tissue
-            'sigma_3': [3.0, 3.0, 3.0], # Saline
+            'sigma_1': 0.0, # Below electrode
+            'sigma_2': 0.3, # Tissue
+            'sigma_3': 3.0, # Saline
             'slice_thickness': 0.2,
             'steps' : 20}
         Moi = MoI(set_up_parameters = set_up_parameters)
@@ -60,17 +57,17 @@ class TestMoI(unittest.TestCase):
         charge_pos_1 = [0,0,0]
         charge_pos_2 = [-set_up_parameters['slice_thickness']/4, 0,0]
         elec_pos = [-set_up_parameters['slice_thickness']/2, 0, 0]
-        returned_ans_1 = Moi.anisotropic_moi(charge_pos_1, elec_pos, imem)
-        returned_ans_2 = Moi.anisotropic_moi(charge_pos_2, elec_pos, imem)
+        returned_ans_1 = Moi.isotropic_moi(charge_pos_1, elec_pos, imem)
+        returned_ans_2 = Moi.isotropic_moi(charge_pos_2, elec_pos, imem)
         self.assertGreater(returned_ans_2, returned_ans_1)
         
-    def atest_within_domain_check(self):
+    def test_within_domain_check(self):
         """ Test if unvalid electrode or charge position raises RuntimeError.
         """
         set_up_parameters = {
-            'sigma_1': [0.0, 0.0, 0.0], # Below electrode
-            'sigma_2': [0.3, 0.3, 0.3], # Tissue
-            'sigma_3': [3.0, 3.0, 3.0], # Saline
+            'sigma_1': 0.0, # Below electrode
+            'sigma_2': 0.3, # Tissue
+            'sigma_3': 3.0, # Saline
             'slice_thickness': 0.2,
             'steps' : 20}
         Moi = MoI(set_up_parameters = set_up_parameters)
@@ -81,11 +78,11 @@ class TestMoI(unittest.TestCase):
         valid_position = [0,0,0]
         kwargs = {'imem': imem}
         with self.assertRaises(RuntimeError):
-            Moi.anisotropic_moi(valid_position, valid_position)
+            Moi.isotropic_moi(valid_position, valid_position)
         for pos in invalid_positions:
             with self.assertRaises(RuntimeError):
-                Moi.anisotropic_moi(valid_position, pos)
-                Moi.anisotropic_moi(pos, valid_position)
+                Moi.isotropic_moi(valid_position, pos)
+                Moi.isotropic_moi(pos, valid_position)
 
 
     def atest_very_anisotropic(self):
@@ -125,12 +122,12 @@ class TestMoI(unittest.TestCase):
         pl.show()
 
 
-    def atest_big_average(self):
+    def test_big_average(self):
         """ Testing average over electrode with many values"""
         set_up_parameters = {
-            'sigma_1': [0.0, 0.0, 0.0], # Below electrode
-            'sigma_2': [0.3, 0.3, 0.3], # Tissue
-            'sigma_3': [3.0, 3.0, 3.0], # Saline
+            'sigma_1': 0.0, # Below electrode
+            'sigma_2': 0.3, # Tissue
+            'sigma_3': 3.0, # Saline
             'slice_thickness': 0.2,
             'steps' : 20}
         a = set_up_parameters['slice_thickness']/2.
@@ -141,12 +138,12 @@ class TestMoI(unittest.TestCase):
         phi = Moi.potential_at_elec_big_average(charge_pos, elec_pos, r)
 
 
-    def test_moi_line_source(self):
+    def atest_moi_line_source(self):
         """ Testing infinite isotropic moi line source formula"""
         set_up_parameters = {
-            'sigma_1': [0.0, 0.0, 0.0], # Below electrode
-            'sigma_2': [0.3, 0.3, 0.3], # Tissue
-            'sigma_3': [3.0, 3.0, 3.0], # Saline
+            'sigma_1': 0.0, # Below electrode
+            'sigma_2': 0.3, # Tissue
+            'sigma_3': 3.0, # Saline
             'slice_thickness': 0.2,
             'steps' : 20}
         a = set_up_parameters['slice_thickness']/2.
@@ -156,14 +153,14 @@ class TestMoI(unittest.TestCase):
         comp_end = [-0.09, .1, .01]
         comp_mid = (np.array(comp_end) + np.array(comp_start))/2
         comp_length = np.sqrt( np.sum((np.array(comp_end) - np.array(comp_start))**2))
-        elec_y = np.linspace(-0.15, 0.15, 30)
-        elec_z = np.linspace(-0.15, 0.15, 30)
+        elec_y = np.linspace(-0.15, 0.15, 5)
+        elec_z = np.linspace(-0.15, 0.15, 5)
         phi_LS = []
         phi_PS = []
         phi_PSi = []
         y = []
         z = []
-        points = 1000
+        points = 3
         s = np.array(comp_end) - np.array(comp_start)
         ds = s / (points)
         
@@ -171,11 +168,11 @@ class TestMoI(unittest.TestCase):
             for y_pos in xrange(len(elec_y)):
                 phi_LS.append(Moi.line_source_moi(comp_start, comp_end, \
                                            comp_length, [-0.1, elec_y[y_pos], elec_z[z_pos]], imem=1))
-                phi_PS.append(Moi.anisotropic_moi(comp_mid, [-0.1, elec_y[y_pos], elec_z[z_pos]]))
+                phi_PS.append(Moi.isotropic_moi(comp_mid, [-0.1, elec_y[y_pos], elec_z[z_pos]]))
                 delta = 0
                 for step in xrange(points+1):
                     pos = comp_start + ds*step
-                    delta += Moi.anisotropic_moi(\
+                    delta += Moi.isotropic_moi(\
                         pos, [-0.1, elec_y[y_pos], elec_z[z_pos]], imem = 1./(points+1))
                 phi_PSi.append(delta)
                                        
@@ -200,7 +197,7 @@ class TestMoI(unittest.TestCase):
         pl.scatter(z,y, c=(np.array(phi_LS) - np.array(phi_PSi)), s=1, edgecolors='none')
         pl.axis('equal')
         pl.colorbar()       
-        pl.savefig('line_source_test.png')
+        pl.savefig('line_source_test2.png')
         
 if __name__ == '__main__':
     unittest.main()
