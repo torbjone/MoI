@@ -146,18 +146,18 @@ class TestMoI(unittest.TestCase):
         set_up_parameters = {
             'sigma_1': [0.0, 0.0, 0.0], # Below electrode
             'sigma_2': [0.3, 0.3, 0.3], # Tissue
-            'sigma_3': [0.3, 0.3, 0.3], # Saline
+            'sigma_3': [3.0, 3.0, 3.0], # Saline
             'slice_thickness': 0.2,
             'steps' : 20}
         a = set_up_parameters['slice_thickness']/2.
         Moi = MoI(set_up_parameters = set_up_parameters)
 
-        comp_start = [-.00, -.1, -.05]
-        comp_end = [-0.07, .1, .01]
+        comp_start = [.09, -.1, -.05]
+        comp_end = [-0.09, .1, .01]
         comp_mid = (np.array(comp_end) + np.array(comp_start))/2
         comp_length = np.sqrt( np.sum((np.array(comp_end) - np.array(comp_start))**2))
-        elec_y = np.linspace(-0.1, 0.1, 10)
-        elec_z = np.linspace(-0.1, 0.1, 10)
+        elec_y = np.linspace(-0.15, 0.15, 30)
+        elec_z = np.linspace(-0.15, 0.15, 30)
         phi_LS = []
         phi_PS = []
         phi_PSi = []
@@ -183,21 +183,21 @@ class TestMoI(unittest.TestCase):
                 y.append(elec_y[y_pos])
         import pylab as pl
         pl.subplot(411)
-        pl.scatter(z,y, c=phi_LS)
+        pl.scatter(z,y, c=phi_LS, s=2, edgecolors='none')
         pl.axis('equal')
         pl.colorbar()
         pl.subplot(412)
-        pl.scatter(z,y, c=phi_PS)
+        pl.scatter(z,y, c=phi_PS, s=2, edgecolors='none')
         pl.axis('equal')
         pl.colorbar()
         pl.subplot(413)
-        pl.scatter(z,y, c=phi_PSi)
+        pl.scatter(z,y, c=phi_PSi, s=2, edgecolors='none')
         pl.axis('equal')
         pl.colorbar()
 
         
         pl.subplot(414)       
-        pl.scatter(z,y, c=(np.array(phi_LS) - np.array(phi_PSi)))
+        pl.scatter(z,y, c=(np.array(phi_LS) - np.array(phi_PSi)), s=1, edgecolors='none')
         pl.axis('equal')
         pl.colorbar()       
         pl.savefig('line_source_test.png')

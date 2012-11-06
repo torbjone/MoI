@@ -154,7 +154,19 @@ class MoI:
         phi *= 2*imem/(4*np.pi*self.sigma_2[0] * comp_length)
         return phi
 
-
+    
+    def potential_at_elec_line_source(self, comp_start, comp_end, comp_length, elec_pos, r, imem=1):
+        """ Calculate the potential at electrode 'elec_index' """
+        elec_pos_1 = [elec_pos[0], elec_pos[1] + r, elec_pos[2]]
+        elec_pos_2 = [elec_pos[0], elec_pos[1] - r, elec_pos[2]]
+        elec_pos_3 = [elec_pos[0], elec_pos[1], elec_pos[2] + r]
+        elec_pos_4 = [elec_pos[0], elec_pos[1], elec_pos[2] - r]
+        phi_0 = self.line_source_moi(comp_start, comp_end, comp_length, elec_pos, imem)    
+        phi_1 = self.line_source_moi(comp_start, comp_end, comp_length, elec_pos_1, imem)    
+        phi_2 = self.line_source_moi(comp_start, comp_end, comp_length, elec_pos_2, imem)
+        phi_3 = self.line_source_moi(comp_start, comp_end, comp_length, elec_pos_3, imem)
+        phi_4 = self.line_source_moi(comp_start, comp_end, comp_length, elec_pos_4, imem)
+        return (phi_0 + phi_1 + phi_2 + phi_3 + phi_4)/5
 
     def potential_at_elec(self, charge_pos, elec_pos, r, imem=1):
         """ Calculate the potential at electrode 'elec_index' """
@@ -206,11 +218,19 @@ class MoI:
                 elec_pos = [elec_x, elec_y[elec], elec_z[elec]]
                 charge_pos = comp_coors[:,comp]
                 if ext_sim_dict['include_elec']:
-                    mapping[elec, comp] += self.potential_at_elec(\
-                        charge_pos, elec_pos, ext_sim_dict['elec_radius'])
+                    if ext_sim_dict['use_line_source']:
+                        mapping[elec, comp] += self.potential_at_elec_line_source(\
+                            comp_start, comp_end, comp_length, elec_pos, ext_sim_dict['elec_radius'])
+                    else:
+                        mapping[elec, comp] += self.potential_at_elec(\
+                            charge_pos, elec_pos, ext_sim_dict['elec_radius'])
                 else:
-                    mapping[elec, comp] += self.anisotropic_moi(\
-                        charge_pos, elec_pos)
+                    if ext_sim_dict['use_line_source']:
+                        mapping[elec, comp] += self.line_source_moi(\
+                            comp_start, comp_end, comp_length, elec_pos)
+                    else:
+                        mapping[elec, comp] += self.anisotropic_moi(\
+                            charge_pos, elec_pos)
         print ''
         np.save(os.path.join(ext_sim_dict['output_folder'], 'mappings', 'map_%s.npy' \
                 %(neur_dict['name'])), mapping)
