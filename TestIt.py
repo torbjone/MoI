@@ -85,7 +85,7 @@ class TestMoI(unittest.TestCase):
                 Moi.isotropic_moi(pos, valid_position)
 
 
-    def atest_very_anisotropic(self):
+    def test_very_anisotropic(self):
         """ Made to find error in very anisotropic case close to upper layer
         """
         set_up_parameters = {

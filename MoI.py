@@ -42,17 +42,15 @@ class MoI:
         try:
             if len(self.sigma_1) == 3 or len(self.sigma_2) == 3\
                    or len(self.sigma_3) == 3:
-                print "Conductivities sigma_{1,2,3} must be scalars"
+                print "\nConductivities are tensors!!\n"
             if (self.sigma_1[0] == self.sigma_1[1] == self.sigma_1[2]) and \
                (self.sigma_2[0] == self.sigma_2[1] == self.sigma_2[2]) and \
                (self.sigma_3[0] == self.sigma_3[1] == self.sigma_3[2]):
-                self.sigma_1 = self.sigma_1[0]
-                self.sigma_2 = self.sigma_2[0]
-                self.sigma_3 = self.sigma_3[0]
+                raise RuntimeError("Isotropic conductivities should be given as scalars!")
             else:
-                raise ValueError("Can't handle anisotropic yet!")
+               self.anisotropic = True
         except TypeError:
-            pass
+            self.anisotropic = False
             
         self.slice_thickness = set_up_parameters['slice_thickness']
         self.a = self.slice_thickness/2
@@ -73,13 +71,13 @@ class MoI:
             print "Charge position: ", charge_pos, "Electrode position: ", elec_pos
             raise RuntimeError("Charge and electrode at same position!")
 
-    def aanisotropic_moi(self, charge_pos, elec_pos, imem=1):
+    def _anisotropic_moi(self, charge_pos, elec_pos, imem=1):
         """ This function calculates the potential at the position elec_pos = [x,y,z]
         set up by the charge at position charge_pos = [x,y,z]. To get get the potential
         from multiple charges, the contributions must be summed up.
         
         """
-        def _MX_function(self, sigma, p, y_dist, z_dist):
+        def _MX_function(sigma, p, y_dist, z_dist):
             if sigma[0]*sigma[1]*sigma[2] == 0:
                 return 0
             else:
@@ -87,13 +85,13 @@ class MoI:
                        (sigma[1]*sigma[2]*p**2 + \
                         sigma[0]*sigma[2]*y_dist**2 + sigma[0]*sigma[1]*z_dist**2)
 
-        def _W2X(self, sigma_2, sigma_X, p, y_dist, z_dist):
-            M2 = self._MX_function(sigma_2, p, y_dist, z_dist)
-            MX = self._MX_function(sigma_X, p, y_dist, z_dist)
+        def _W2X(sigma_2, sigma_X, p, y_dist, z_dist):
+            M2 = _MX_function(sigma_2, p, y_dist, z_dist)
+            MX = _MX_function(sigma_X, p, y_dist, z_dist)
             W_value =  (M2 - MX)/(M2 + MX)
             return W_value
 
-        def _R(self, sigma, x_dist, y_dist, z_dist):
+        def _R(sigma, x_dist, y_dist, z_dist):
             return ( sigma[1]*sigma[2] * x_dist**2 +\
                       sigma[0]*sigma[2] * y_dist**2 +\
                       sigma[0]*sigma[1] * z_dist**2)**(-0.5)
@@ -105,7 +103,7 @@ class MoI:
         x0, y0, z0 = charge_pos[:]
         x, y, z = elec_pos[:]
         n = 1
-        phi = self._R(self.sigma_2, x - x0, y - y0, z - z0)
+        phi = _R(self.sigma_2, x - x0, y - y0, z - z0)
 
         while n < self.steps:
             p_upper = (2*n - 1) * self.a + x0
@@ -113,17 +111,17 @@ class MoI:
             x_dist_lower = (-1)**(n+1)*(-2*n*self.a - x0) - x
             x_dist_upper = (-1)**(n+1)*( 2*n*self.a - x0) - x
             if n%2 == 1: # Odd terms
-                factor_lower *= self._W2X(self.sigma_2, self.sigma_1, \
+                factor_lower *= _W2X(self.sigma_2, self.sigma_1, \
                                      p_lower, y-y0, z-z0)
-                factor_upper *= self._W2X(self.sigma_2, self.sigma_3,\
+                factor_upper *= _W2X(self.sigma_2, self.sigma_3,\
                                      p_upper, y-y0, z-z0)
             else:
-                factor_lower *= self._W2X(self.sigma_2, self.sigma_3,\
+                factor_lower *= _W2X(self.sigma_2, self.sigma_3,\
                                      p_lower, y-y0, z-z0)
-                factor_upper *= self._W2X(self.sigma_2, self.sigma_1,\
+                factor_upper *= _W2X(self.sigma_2, self.sigma_1,\
                                      p_upper, y-y0, z-z0)
-            delta = factor_upper * self._R(self.sigma_2, x_dist_upper, y - y0, z-z0) +\
-                    factor_lower * self._R(self.sigma_2, x_dist_lower, y - y0, z-z0)
+            delta = factor_upper * _R(self.sigma_2, x_dist_upper, y - y0, z-z0) +\
+                    factor_lower * _R(self.sigma_2, x_dist_lower, y - y0, z-z0)
             #print "\n", elec_pos
             #print "p_upper: ", p_upper 
             #print "p_lower: ",p_lower 
@@ -143,9 +141,7 @@ class MoI:
         """ This function calculates the potential at the position elec_pos = [x,y,z]
         set up by the charge at position charge_pos = [x,y,z]. To get get the potential
         from multiple charges, the contributions must be summed up.
-        
         """
-
         def _omega(dx):
             return 1/np.sqrt( (y - y0)**2 + (z - z0)**2 + dx**2) 
         self.in_domain(elec_pos, charge_pos) # Check if valid positions
@@ -168,10 +164,9 @@ class MoI:
         return phi
 
     def line_source_moi(self, comp_start, comp_end, comp_length, elec_pos, imem=1):
-        """ Calculate the moi line source potential"""
+        """ Calculate the moi line source potential at electrode plane"""
         self.in_domain(elec_pos, comp_start)
         self.in_domain(elec_pos, comp_end)
-
         x0, y0, z0 = comp_start[:]
         x1, y1, z1 = comp_end[:]
         x, y, z = elec_pos[:]
@@ -196,22 +191,43 @@ class MoI:
         return phi
 
     def point_source_moi_at_elec(self, charge_pos, elec_pos, imem=1):
-        """ Calculate the moi line source potential"""
+        """ Calculate the moi point source potential"""
         self.in_domain(elec_pos, charge_pos)
         x0, y0, z0 = charge_pos[:]
         x, y, z = elec_pos[:]
         def _omega(dx):
             return 1/np.sqrt( (y - y0)**2 + (z - z0)**2 + dx**2) 
         phi = _omega(-self.a - x0)
+        W = (self.sigma_2 - self.sigma_3)/(self.sigma_2 + self.sigma_3)
         n = 1
         while n < self.steps:
             delta = _omega((4*n-1)*self.a - x0) + _omega(-(4*n+1)*self.a - x0)
-            phi += ((self.sigma_2 - self.sigma_3)/(self.sigma_2 + self.sigma_3))**n *delta
+            phi += W**n * delta
             n += 1   
-        phi *= 2*imem/(4*np.pi*self.sigma_2 * comp_length)
+        phi *= 2*imem/(4*np.pi*self.sigma_2)
+        return phi
+    
+    def ad_hoc_anisotropic(self, charge_pos, elec_pos, imem=1):
+        """ Calculate the moi point source potential"""
+        self.in_domain(elec_pos, charge_pos)
+        x0, y0, z0 = charge_pos[:]
+        x, y, z = elec_pos[:]
+        
+        W = (np.min(self.sigma_2) - np.min(self.sigma_3))/\
+            (np.min(self.sigma_2) + np.min(self.sigma_3))
+        
+        def _omega(dx):
+            return 1/np.sqrt(self.sigma_2[0]*self.sigma_2[2]*(y - y0)**2 + \
+                             self.sigma_2[0]*self.sigma_2[1]*(z - z0)**2 + \
+                             self.sigma_2[1]*self.sigma_2[2]*dx**2) 
+        phi = _omega(-self.a - x0)
+        n = 1
+        while n < self.steps:
+            phi += W**n * (_omega((4*n-1)*self.a - x0) + _omega(-(4*n+1)*self.a - x0))
+            n += 1   
+        phi *= 2*imem/(4*np.pi)
         return phi
 
-    
     def potential_at_elec_line_source(self, comp_start, comp_end, comp_length, elec_pos, r, imem=1):
         """ Calculate the potential at electrode 'elec_index' """
         elec_pos_1 = [elec_pos[0], elec_pos[1] + r, elec_pos[2]]
