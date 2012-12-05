@@ -46,7 +46,8 @@ class MoI:
             if (self.sigma_1[0] == self.sigma_1[1] == self.sigma_1[2]) and \
                (self.sigma_2[0] == self.sigma_2[1] == self.sigma_2[2]) and \
                (self.sigma_3[0] == self.sigma_3[1] == self.sigma_3[2]):
-                raise RuntimeError("Isotropic conductivities should be given as scalars!")
+                print "Isotropic conductivities should be given as scalars!"
+                #raise RuntimeError("Isotropic conductivities should be given as scalars!")
             else:
                self.anisotropic = True
         except TypeError:
@@ -55,7 +56,6 @@ class MoI:
         self.slice_thickness = set_up_parameters['slice_thickness']
         self.a = self.slice_thickness/2
         self.steps = set_up_parameters['steps']
-
 
     def in_domain(self, elec_pos, charge_pos):
         """ Checks if elec_pos and charge_pos is within valid area.
@@ -247,11 +247,11 @@ class MoI:
         elec_pos_2 = [elec_pos[0], elec_pos[1] - r, elec_pos[2]]
         elec_pos_3 = [elec_pos[0], elec_pos[1], elec_pos[2] + r]
         elec_pos_4 = [elec_pos[0], elec_pos[1], elec_pos[2] - r]
-        phi_0 = self.anisotropic_moi(charge_pos, elec_pos, imem)    
-        phi_1 = self.anisotropic_moi(charge_pos, elec_pos_1, imem)    
-        phi_2 = self.anisotropic_moi(charge_pos, elec_pos_2, imem)
-        phi_3 = self.anisotropic_moi(charge_pos, elec_pos_3, imem)
-        phi_4 = self.anisotropic_moi(charge_pos, elec_pos_4, imem)
+        phi_0 = self.isotropic_moi(charge_pos, elec_pos, imem)    
+        phi_1 = self.isotropic_moi(charge_pos, elec_pos_1, imem)    
+        phi_2 = self.isotropic_moi(charge_pos, elec_pos_2, imem)
+        phi_3 = self.isotropic_moi(charge_pos, elec_pos_3, imem)
+        phi_4 = self.isotropic_moi(charge_pos, elec_pos_4, imem)
         return (phi_0 + phi_1 + phi_2 + phi_3 + phi_4)/5
 
     def potential_at_elec_big_average(self, charge_pos, elec_pos, r, imem=1):
@@ -267,14 +267,20 @@ class MoI:
                 if not np.sqrt(e_z**2 + e_y**2) <= r:
                     continue
                 number_of_points += 1
-                phi += self.isotropic_moi(charge_pos, [elec_pos[0], e_z, e_y], imem)
+                phi += self.point_source_moi_at_elec(charge_pos, [elec_pos[0], e_z, e_y], imem)
         return phi/number_of_points
 
     def make_mapping(self, neur_dict, ext_sim_dict):
         """ Make a mapping given two arrays of electrode positions"""
         print '\033[1;35mMaking mapping for %s...\033[1;m' %neur_dict["name"]
-        neur_input = os.path.join(ext_sim_dict['neural_input'],\
-                                         neur_dict['name'], 'coor.npy')
+        coor_folder = os.path.join(ext_sim_dict['neural_input'],\
+                                         neur_dict['name'])
+        neur_input = os.path.join(coor_folder, 'coor.npy')
+        if ext_sim_dict['use_line_source']:
+            comp_start = np.load(os.path.join(coor_folder, 'coor_start.npy'))
+            comp_end = np.load(os.path.join(coor_folder, 'coor_end.npy'))
+            comp_length = np.load(os.path.join(coor_folder, 'length.npy'))
+
         comp_coors = np.load(neur_input)
         n_compartments = len(comp_coors[0,:])
         n_elecs = ext_sim_dict['n_elecs']
@@ -292,8 +298,13 @@ class MoI:
                 charge_pos = comp_coors[:,comp]
                 if ext_sim_dict['include_elec']:
                     if ext_sim_dict['use_line_source']:
-                        mapping[elec, comp] += self.potential_at_elec_line_source(\
-                            comp_start, comp_end, comp_length, elec_pos, ext_sim_dict['elec_radius'])
+                        if comp == 0:
+                            mapping[elec, comp] += self.potential_at_elec(\
+                                charge_pos, elec_pos, ext_sim_dict['elec_radius'])
+                        else: 
+                            mapping[elec, comp] += self.potential_at_elec_line_source(\
+                                comp_start[:,comp], comp_end[:,comp],
+                                comp_length[comp], elec_pos, ext_sim_dict['elec_radius'])
                     else:
                         mapping[elec, comp] += self.potential_at_elec(\
                             charge_pos, elec_pos, ext_sim_dict['elec_radius'])
@@ -305,6 +316,12 @@ class MoI:
                         mapping[elec, comp] += self.isotropic_moi(\
                             charge_pos, elec_pos)
         print ''
+        try:
+            os.mkdir(ext_sim_dict['output_folder'])
+            os.mkdir(os.path.join(ext_sim_dict['output_folder'], 'mappings'))
+            os.mkdir(os.path.join(ext_sim_dict['output_folder'], 'mappings'))
+        except OSError:
+            pass
         np.save(os.path.join(ext_sim_dict['output_folder'], 'mappings', 'map_%s.npy' \
                 %(neur_dict['name'])), mapping)
         return mapping
@@ -318,12 +335,17 @@ class MoI:
                             neur_dict['name'], 'imem.npy')
         imem =  np.load(neur_input)
         ntsteps = len(imem[0,:])
+        print ntsteps
         n_elecs = ext_sim_dict['n_elecs']
         signals = np.zeros((n_elecs, ntsteps))
         n_compartments = len(imem[:,0])
         for elec in xrange(n_elecs):
             for comp in xrange(n_compartments):
                 signals[elec,:] += mapping[elec, comp] * imem[comp,:]
+        try:
+            os.mkdir(os.path.join(ext_sim_dict['output_folder'], 'signals'))
+        except OSError:
+            pass
         np.save(os.path.join(ext_sim_dict['output_folder'], 'signals', \
                                  'signal_%s.npy' %(neur_dict['name'])), signals)           
         return signals
