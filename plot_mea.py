@@ -1,6 +1,9 @@
 import numpy as np
 import pylab as pl
-from ipdb import set_trace
+try:
+    from ipdb import set_trace
+except:
+    pass
 import os
 def plot_mea(neuron_dict, ext_sim_dict, neural_sim_dict):
     print "Plotting MEA"
