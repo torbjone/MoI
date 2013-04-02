@@ -2,6 +2,11 @@
 import numpy as np
 from sys import stdout
 import os
+if not os.environ.has_key('DISPLAY'):
+    import matplotlib
+    matplotlib.use('Agg')
+import pylab as pl
+
 try:
     from ipdb import set_trace
 except:
@@ -181,10 +186,18 @@ class MoI:
         a_x = x - x0
         a_y = y - y0
         def _omega(a_z):
-            num = comp_length**2 - a_x * dx - a_y * dy - a_z * dz + \
-                  comp_length*np.sqrt((a_z - dz)**2 + (a_y - dy)**2 + (a_x - dx)**2)
-            den = - a_x * dx - a_y * dy - a_z * dz + \
-                  comp_length*np.sqrt(a_z**2 + a_y**2 + a_x**2)
+            #See Rottman integration formula 46) page 137 for explanation
+            factor_a = comp_length*comp_length
+            factor_b = - a_x*dx - a_y*dy - a_z * dz
+            factor_c = a_x*a_x + a_y*a_y + a_z*a_z
+            b_2_ac = factor_b*factor_b - factor_a * factor_c
+            if b_2_ac == 0.0:
+                num = a + b
+                den = b
+            else:
+                num = factor_a + factor_b + \
+                      comp_length*np.sqrt(factor_a + 2*factor_b + factor_c)
+                den = factor_b + comp_length*np.sqrt(factor_c)
             return np.log(num/den)
         phi = _omega(-self.a - z0)
         n = 1
@@ -414,3 +427,22 @@ class MoI:
         np.save(os.path.join(ext_sim_dict['output_folder'], 'signals', \
                                  'signal_%s.npy' %(neur_dict['name'])), signals)           
         return signals
+
+
+    def plot_mea(self, neuron_dict, ext_sim_dict, neural_sim_dict):
+        pl.close('all')
+        fig_all = pl.figure(figsize=[10,15])
+        ax_all = fig_all.add_axes([0.05, 0.03, 0.9, 0.9], frameon=False)
+        for elec in xrange(len(ext_sim_dict['elec_x'])):
+            ax_all.plot(ext_sim_dict['elec_x'][elec], ext_sim_dict['elec_y'][elec], color='b',\
+                    marker='$E%i$'%elec, markersize=20 )    
+        legends = []
+        for i, neur in enumerate(neuron_dict):
+            folder = os.path.join(neural_sim_dict['output_folder'], neuron_dict[neur]['name'])
+            xmid, ymid, zmid = np.load(folder + '/coor.npy')
+            ax_all.plot(xmid[0], ymid[0], marker='$%s$'%neur[-2:], markersize=20)
+        ax_all.axis('equal')
+        ax_all.set_xlabel('x [mm]')
+        ax_all.set_ylabel('y [mm]')
+        fig_all.savefig(os.path.join(neural_sim_dict['output_folder'], 'all_numbered.png'))
+

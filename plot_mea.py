@@ -5,11 +5,8 @@ try:
 except:
     pass
 import os
+
 def plot_mea(neuron_dict, ext_sim_dict, neural_sim_dict):
-    print "Plotting MEA"
-    plot_elecs_and_neurons(neuron_dict, ext_sim_dict, neural_sim_dict)
-    
-def plot_elecs_and_neurons(neuron_dict, ext_sim_dict, neural_sim_dict):
     pl.close('all')
     fig_all = pl.figure(figsize=[15,15])
     ax_all = fig_all.add_axes([0.1, 0.1, 0.8, 0.8], frameon=False)
