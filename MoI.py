@@ -191,9 +191,9 @@ class MoI:
             factor_b = - a_x*dx - a_y*dy - a_z * dz
             factor_c = a_x*a_x + a_y*a_y + a_z*a_z
             b_2_ac = factor_b*factor_b - factor_a * factor_c
-            if b_2_ac == 0.0:
-                num = a + b
-                den = b
+            if np.abs(b_2_ac) <= 1e-16:
+                num = factor_a + factor_b
+                den = factor_b
             else:
                 num = factor_a + factor_b + \
                       comp_length*np.sqrt(factor_a + 2*factor_b + factor_c)
@@ -274,18 +274,29 @@ class MoI:
 
     def potential_at_elec_big_average(self, charge_pos, elec_pos, r, imem=1):
         """ Calculate the potential at electrode 'elec_index' with many points"""
-        #import pylab as pl
-        number_of_points = 0
-        splits = 100
+
+        ## number_of_points = 0
+        ## splits = 100
+        ## phi = 0
+        ## for n_x in xrange(splits):
+        ##     for n_y in xrange(splits):
+        ##         e_x = -r + 2*n_x*r/(splits-1)
+        ##         e_y = -r + 2*n_y*r/(splits-1)
+        ##         if not np.sqrt(e_x**2 + e_y**2) <= r:
+        ##             continue
+        ##         number_of_points += 1
+        ##         phi += self.point_source_moi_at_elec(charge_pos, [e_x, e_y, elec_pos[2]], imem)
+        number_of_points = 1000
         phi = 0
-        for n_x in xrange(splits):
-            for n_y in xrange(splits):
-                e_x = -r + 2*n_x*r/(splits-1)
-                e_y = -r + 2*n_y*r/(splits-1)
-                if not np.sqrt(e_x**2 + e_y**2) <= r:
-                    continue
-                number_of_points += 1
-                phi += self.point_source_moi_at_elec(charge_pos, [e_x, e_y, elec_pos[2]], imem)
+        for pt in xrange(number_of_points):
+            pt_pos = np.array([(np.random.rand() - 0.5)* 2 * r,
+                               (np.random.rand() - 0.5)* 2 * r])
+            # If outside electrode
+            while np.sum( pt_pos**2) > r**2:
+                pt_pos = np.array([(np.random.rand() - 0.5) * 2 * r,
+                                   (np.random.rand() - 0.5) * 2 * r])
+            phi += self.point_source_moi_at_elec(charge_pos, [pt_pos[0], pt_pos[1], elec_pos[2]], imem)
+
         return phi/number_of_points
 
 
