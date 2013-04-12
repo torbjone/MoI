@@ -3,6 +3,11 @@ import unittest
 import numpy as np
 from MoI import MoI
 import pylab as pl
+try:
+    from ipdb import set_trace
+except:
+    pass
+
 class TestMoI(unittest.TestCase):
 
     def test_homogeneous(self):
@@ -84,6 +89,36 @@ class TestMoI(unittest.TestCase):
                 Moi.isotropic_moi(valid_position, pos)
                 Moi.isotropic_moi(pos, valid_position)
 
+    def test_if_anisotropic(self):
+        """ Test if it can handle anisotropies
+        """
+        set_up_parameters = {
+            'sigma_1': [1.0, 1.0, 1.0], # Below electrode
+            'sigma_2': [0.1, 0.1, 1.0], # Tissue
+            'sigma_3': [0.0, 0.0, 0.0], # Saline
+            'slice_thickness': 0.2,
+            'steps' : 2}
+        Moi = MoI(set_up_parameters = set_up_parameters)
+        self.assertTrue(Moi.is_anisotropic)
+
+        set_up_parameters = {
+            'sigma_1': [1.0], # Below electrode
+            'sigma_2': [1.0], # Tissue
+            'sigma_3': [0.0], # Saline
+            'slice_thickness': 0.2,
+            'steps' : 2}
+        with self.assertRaises(RuntimeError):
+            Moi = MoI(set_up_parameters = set_up_parameters)
+
+        set_up_parameters = {
+            'sigma_1': [1.0, 2.0, 3.0], # Below electrode
+            'sigma_2': 1.0, # Tissue
+            'sigma_3': 0.0, # Saline
+            'slice_thickness': 0.2,
+            'steps' : 2}
+        with self.assertRaises(RuntimeError):
+            Moi = MoI(set_up_parameters = set_up_parameters)
+
 
     def atest_very_anisotropic(self):
         """ Made to find error in very anisotropic case close to upper layer
@@ -105,9 +140,9 @@ class TestMoI(unittest.TestCase):
         values_low = []
         for y in y_array:
             for x in x_array:
-                values_high.append([x,y, Moi.ad_hoc_anisotropic_moi(\
+                values_high.append([x,y, Moi.ad_hoc_anisotropic(\
                     charge_pos = high_position, elec_pos = [x,y,-0.1])])
-                values_low.append([x,y, Moi.anisotropic_moi(\
+                values_low.append([x,y, Moi.ad_hoc_anisotropic(\
                     charge_pos = low_position, elec_pos = [x,y,-0.1])])
         values_high = np.array(values_high)
         values_low = np.array(values_low)
@@ -138,7 +173,7 @@ class TestMoI(unittest.TestCase):
         phi = Moi.potential_at_elec_big_average(charge_pos, elec_pos, r)
 
 
-    def test_moi_line_source(self):
+    def atest_moi_line_source(self):
         """ Testing infinite isotropic moi line source formula"""
         set_up_parameters = {
             'sigma_1': 0.0, # Below electrode
@@ -160,7 +195,7 @@ class TestMoI(unittest.TestCase):
         phi_PSi = []
         y = []
         x = []
-        points = 50
+        points = 200
         s = np.array(comp_end) - np.array(comp_start)
         ds = s / (points-1)
         
