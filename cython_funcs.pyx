@@ -1,16 +1,13 @@
+#!/usr/bin/env python
 import numpy as np
 cimport numpy as np
 cimport cython
-
-cimport cython
 from libc.math cimport sqrt, pow, log
-
-
 DTYPE = np.float
 ctypedef np.float_t DTYPE_t
-@cython.boundscheck(False)
 
-cpdef PS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
+@cython.boundscheck(False)
+def PS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xmid,
@@ -20,6 +17,11 @@ cpdef PS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int st
     cdef np.ndarray[DTYPE_t, ndim=2, negative_indices=False, mode='c'] mapping
     cdef float W, delta
     cdef int comp, elec, n
+
+    if (zmid - elec_z <= 0).any():
+        raise RuntimeError
+    if (zmid + elec_z >= 0).any():
+        raise RuntimeError
     
     mapping = np.zeros((len(elec_x), len(xmid)))
     W = (sigma_T - sigma_S)/(sigma_T + sigma_S)
@@ -42,15 +44,20 @@ cpdef PS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int st
     return 2*mapping/(4*np.pi*sigma_T)
 
 
-
-cpdef PS_with_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
+@cython.boundscheck(False)
+def PS_with_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
                           int n_avrg_points, float elec_r,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xmid,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ymid,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zmid):
-
+    
+    if (zmid - elec_z <= 0).any():
+        raise RuntimeError
+    if (zmid + elec_z >= 0).any():
+        raise RuntimeError
+    
     cdef float W, delta, pt_delta, xpos, ypos
     cdef int comp, elec, n
 
@@ -86,7 +93,8 @@ cpdef PS_with_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps
             mapping[elec, comp] = delta / n_avrg_points
     return 2*mapping/(4*np.pi*sigma_T)
 
-cpdef _LS_omega(float a_x, float a_y, float a_z, float comp_length, float dx, float dy, float dz):
+@cython.boundscheck(False)
+def _LS_omega(float a_x, float a_y, float a_z, float comp_length, float dx, float dy, float dz):
     #See Rottman integration formula 46) page 137 for explanation
     cdef float factor_a, factor_b, factor_c, b_2_ac, num, den
     factor_a = comp_length*comp_length
@@ -102,8 +110,8 @@ cpdef _LS_omega(float a_x, float a_y, float a_z, float comp_length, float dx, fl
         den = factor_b + comp_length*sqrt(factor_c)
     return log(num/den)
 
-
-cpdef LS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
+@cython.boundscheck(False)
+def LS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xstart,
@@ -112,7 +120,15 @@ cpdef LS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int st
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xend,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] yend,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zend):
-
+    
+    if (zstart - elec_z <= 0).any():
+        raise RuntimeError
+    if (zstart + elec_z >= 0).any():
+        raise RuntimeError
+    if (zend - elec_z <= 0).any():
+        raise RuntimeError
+    if (zend + elec_z >= 0).any():
+        raise RuntimeError    
     
     cdef np.ndarray[DTYPE_t, ndim=2, negative_indices=False, mode='c'] mapping
     cdef np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] length
@@ -146,8 +162,8 @@ cpdef LS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int st
             mapping[elec, comp] = delta / length[comp] 
     return 2 * mapping /(4*np.pi*sigma_T)
 
-
-cpdef LS_with_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
+@cython.boundscheck(False)
+def LS_with_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
                            int n_avrg_points, float elec_r,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
@@ -158,6 +174,15 @@ cpdef LS_with_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] yend,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zend):
 
+    if (zstart - elec_z <= 0).any():
+        raise RuntimeError
+    if (zstart + elec_z >= 0).any():
+        raise RuntimeError
+    if (zend - elec_z <= 0).any():
+        raise RuntimeError
+    if (zend + elec_z >= 0).any():
+        raise RuntimeError    
+    
     cdef np.ndarray[DTYPE_t, ndim=2, negative_indices=False, mode='c'] mapping
     cdef np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] length
     cdef np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] dxs

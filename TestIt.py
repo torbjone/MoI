@@ -1,3 +1,5 @@
+
+from cython_funcs import *
 import random
 import unittest
 import numpy as np
@@ -8,11 +10,6 @@ try:
     from ipdb import set_trace
 except:
     pass
-import pyximport
-pyximport.install()
-from cython_funcs import *
-
-
 
 class TestMoI(unittest.TestCase):
 
@@ -334,14 +331,92 @@ class TestMoI(unittest.TestCase):
         invalid_positions = [[0, 0, -a - 120],
                             [0, 0, +a + 120]]
         valid_position = [0,0,0]
-        kwargs = {'imem': imem}
+
+
+        with self.assertRaises(RuntimeError):
+            Moi.in_domain(valid_position, [1,0,0])
+        
         with self.assertRaises(RuntimeError):
             Moi.isotropic_moi(valid_position, valid_position)
-        for pos in invalid_positions:
-            with self.assertRaises(RuntimeError):
-                Moi.isotropic_moi(valid_position, pos)
-                Moi.isotropic_moi(pos, valid_position)
+            for pos in invalid_positions:
+                with self.assertRaises(RuntimeError):
+                    Moi.isotropic_moi(valid_position, pos)
+                    Moi.isotropic_moi(pos, valid_position)
 
+        xstart = np.array([100., 0, -100.,-110])
+        xend =   np.array([100., 0, -100.,-110]) + 100.
+
+        ystart = np.array([100., 0, -100, 200.])
+        yend =   np.array([100., 0, -100, 200]) +100.
+        
+        zstart = np.array([10, 0, -10, -50.])
+        zend =   np.array([10, 0, -10, -50]) + 10.
+        
+        xmid = np.array([100,0,-100.])
+        ymid = np.array([100,0,-100.])
+        zmid = np.array([10,0,-10.])
+
+        
+        elec_x = (np.arange(3) - 1)*50.
+        elec_y = (np.arange(3) - 1)*50.
+        elec_z = -1
+        n_avrg_points = 1
+        elec_r = 1
+        with self.assertRaises(RuntimeError):
+            mapping = LS_with_elec_mapping(set_up_parameters['sigma_T'],
+                                           set_up_parameters['sigma_S'],
+                                           elec_z, set_up_parameters['steps'],
+                                           n_avrg_points, elec_r, elec_x, elec_y, xstart, ystart, zstart,
+                                           xend, yend, zend)
+        with self.assertRaises(RuntimeError):
+            mapping = LS_without_elec_mapping(set_up_parameters['sigma_T'],
+                                              set_up_parameters['sigma_S'],
+                                              elec_z, set_up_parameters['steps'],
+                                              elec_x, elec_y, xstart, ystart, zstart,
+                                              xend, yend, zend)
+
+        with self.assertRaises(RuntimeError):
+            mapping = PS_without_elec_mapping(set_up_parameters['sigma_T'],
+            set_up_parameters['sigma_S'],
+            elec_z, set_up_parameters['steps'],
+            elec_x, elec_y, xmid, ymid, zmid)
+
+        with self.assertRaises(RuntimeError):
+            mapping = PS_with_elec_mapping(set_up_parameters['sigma_T'], 
+                                           set_up_parameters['sigma_S'], elec_z,
+                                           set_up_parameters['steps'], 
+                                           n_avrg_points, elec_r, elec_x, elec_y,
+                                           xmid, ymid, zmid)
+
+        elec_z = -100
+        zmid += 150
+        zstart += 150
+        zend += 150
+        with self.assertRaises(RuntimeError):
+            mapping = LS_with_elec_mapping(set_up_parameters['sigma_T'],
+                                           set_up_parameters['sigma_S'],
+                                           elec_z, set_up_parameters['steps'],
+                                           n_avrg_points, elec_r, elec_x, elec_y, xstart, ystart, zstart,
+                                           xend, yend, zend)
+        with self.assertRaises(RuntimeError):
+            mapping = LS_without_elec_mapping(set_up_parameters['sigma_T'],
+                                              set_up_parameters['sigma_S'],
+                                              elec_z, set_up_parameters['steps'],
+                                              elec_x, elec_y, xstart, ystart, zstart,
+                                              xend, yend, zend)
+
+        with self.assertRaises(RuntimeError):
+            mapping = PS_without_elec_mapping(set_up_parameters['sigma_T'],
+            set_up_parameters['sigma_S'],
+            elec_z, set_up_parameters['steps'],
+            elec_x, elec_y, xmid, ymid, zmid)
+
+        with self.assertRaises(RuntimeError):
+            mapping = PS_with_elec_mapping(set_up_parameters['sigma_T'], 
+                                           set_up_parameters['sigma_S'], elec_z,
+                                           set_up_parameters['steps'], 
+                                           n_avrg_points, elec_r, elec_x, elec_y,
+                                           xmid, ymid, zmid)
     def test_if_anisotropic(self):
         """ Test if it can handle anisotropies
         """
