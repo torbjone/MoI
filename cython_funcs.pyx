@@ -13,7 +13,17 @@ def PS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int step
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xmid,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ymid,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zmid):
+    """
+    Arguments: float sigma_T, float sigma_S, float elec_z, int steps,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xmid,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ymid,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zmid
+    """
 
+
+    
     cdef np.ndarray[DTYPE_t, ndim=2, negative_indices=False, mode='c'] mapping
     cdef float W, delta
     cdef int comp, elec, n
@@ -52,6 +62,16 @@ def PS_with_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xmid,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ymid,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zmid):
+    """ 
+    Arguments:
+           float sigma_T, float sigma_S, float elec_z, int steps,
+                          int n_avrg_points, float elec_r,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xmid,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ymid,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zmid 
+    """
     
     if (zmid - elec_z <= 0).any():
         raise RuntimeError
@@ -120,7 +140,18 @@ def LS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int step
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xend,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] yend,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zend):
-    
+    """ 
+    Arguments:
+            float sigma_T, float sigma_S, float elec_z, int steps,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xstart,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ystart,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zstart,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xend,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] yend,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zend
+    """
     if (zstart - elec_z <= 0).any():
         raise RuntimeError
     if (zstart + elec_z >= 0).any():
@@ -173,7 +204,23 @@ def LS_with_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xend,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] yend,
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zend):
+    """ 
+    Arguments:
+            float sigma_T, float sigma_S, float elec_z, int steps,
+                           int n_avrg_points, float elec_r,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xstart,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ystart,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zstart,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xend,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] yend,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zend
+    """
 
+
+
+    
     if (zstart - elec_z <= 0).any():
         raise RuntimeError
     if (zstart + elec_z >= 0).any():
