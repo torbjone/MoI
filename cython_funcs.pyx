@@ -22,16 +22,19 @@ def PS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int step
             np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zmid
     """
 
-
+    if (zmid - elec_z <= 0).any():
+        raise RuntimeError
+    if (zmid + elec_z >= 0).any():
+        raise RuntimeError
     
     cdef np.ndarray[DTYPE_t, ndim=2, negative_indices=False, mode='c'] mapping
     cdef float W, delta
     cdef int comp, elec, n
 
     if (zmid - elec_z <= 0).any():
-        raise RuntimeError
+        raise RuntimeError, "zmid too high"
     if (zmid + elec_z >= 0).any():
-        raise RuntimeError
+        raise RuntimeError, "zmid too low"
     
     mapping = np.zeros((len(elec_x), len(xmid)))
     W = (sigma_T - sigma_S)/(sigma_T + sigma_S)
@@ -53,6 +56,70 @@ def PS_without_elec_mapping(float sigma_T, float sigma_S, float elec_z, int step
             mapping[elec, comp] = delta
     return 2*mapping/(4*np.pi*sigma_T)
 
+@cython.boundscheck(False)
+def anisotropic_PS_without_elec_mapping(float elec_z, int steps,
+                np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] sigma_T,
+                np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] sigma_S,
+                np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
+                np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
+                np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xmid,
+                np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ymid,
+                np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zmid):
+    """
+    Calculate the moi point source potential at the MEA plane with saline conductivity
+    sigma_S is scaled to k * sigma_T. Only for point sources without electrodes.
+    Arguments: float elec_z, int steps,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] sigma_T,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] sigma_S,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_x,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] elec_y,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] xmid,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ymid,
+            np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] zmid
+    """
+
+    if len(sigma_T) != 3:
+        raise RuntimeError, "Tissue conductivity must have length 3"
+    if len(sigma_S) != 3:
+        raise RuntimeError, "Saline conductivity must have length 3"
+    if (zmid - elec_z <= 0).any():
+        raise RuntimeError
+    if (zmid + elec_z >= 0).any():
+        raise RuntimeError
+    
+    cdef np.ndarray[DTYPE_t, ndim=1, negative_indices=False, mode='c'] ratios, sigma_S_scaled
+    cdef np.ndarray[DTYPE_t, ndim=2, negative_indices=False, mode='c'] mapping
+    cdef float scale_factor, sigma_T_net, sigma_S_net, anis_W, delta
+    cdef int n, comp, elec
+    
+    ratios = sigma_S / sigma_T
+    if np.abs(ratios[0] - ratios[2]) <= 1e-15:
+        scale_factor = ratios[0]
+    elif np.abs(ratios[1] - ratios[2]) <= 1e-15:
+        scale_factor = ratios[1]
+
+    sigma_S_scaled = scale_factor * sigma_T
+    sigma_T_net = np.sqrt(sigma_T[0] * sigma_T[2])
+    sigma_S_net = np.sqrt(sigma_S_scaled[0] * sigma_S_scaled[2])
+    anis_W = (sigma_T_net - sigma_S_net)/(sigma_T_net + sigma_S_net)
+    mapping = np.zeros((len(elec_x), len(xmid)))
+
+    for comp in xrange(len(xmid)):
+        for elec in xrange(len(elec_x)):
+            delta = 1/sqrt(sigma_T[0]*sigma_T[2]*pow(elec_y[elec] - ymid[comp], 2) + \
+                           sigma_T[0]*sigma_T[1]*pow(elec_z - zmid[comp], 2) + \
+                           sigma_T[1]*sigma_T[2]*pow(elec_x[elec] - xmid[comp], 2)) 
+            n = 1
+            while n < steps:
+                delta += pow(anis_W, n) * (1/sqrt(sigma_T[0]*sigma_T[2]*pow(elec_y[elec] - ymid[comp], 2) + \
+                                           sigma_T[0]*sigma_T[1]*pow(-(4*n-1)*elec_z - zmid[comp], 2) + \
+                                           sigma_T[1]*sigma_T[2]*pow(elec_x[elec] - xmid[comp], 2)) +\
+                                          1/sqrt(sigma_T[0]*sigma_T[2]*pow(elec_y[elec] - ymid[comp], 2) + \
+                                            sigma_T[0]*sigma_T[1]*pow((4*n+1)*elec_z - zmid[comp], 2) + \
+                                            sigma_T[1]*sigma_T[2]*pow(elec_x[elec] - xmid[comp], 2)))
+                n += 1
+            mapping[elec, comp] = delta
+    return 2/(4*np.pi) * mapping
 
 @cython.boundscheck(False)
 def PS_with_elec_mapping(float sigma_T, float sigma_S, float elec_z, int steps,

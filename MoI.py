@@ -59,16 +59,20 @@ class MoI:
                  debug = False
                  ):
         self.set_up_parameters = set_up_parameters
-
-        self.sigma_G = set_up_parameters['sigma_G']
+        try:
+            self.sigma_G = set_up_parameters['sigma_G']
+        except KeyError:
+            self.sigma_G = 0
         self.sigma_T = set_up_parameters['sigma_T']
         self.sigma_S = set_up_parameters['sigma_S']
         self._check_for_anisotropy()
         
         self.slice_thickness = set_up_parameters['slice_thickness']
         self.a = self.slice_thickness/2.
-        self.steps = set_up_parameters['steps']
-
+        try:
+            self.steps = set_up_parameters['steps']
+        except KeyError:
+            self.steps = 50
 
     def _anisotropic_saline_scaling(self):
         """ To make formula work in anisotropic case we scale the conductivity of the
@@ -98,42 +102,46 @@ class MoI:
         """
         sigmas = [self.sigma_G, self.sigma_T, self.sigma_S]
         anisotropy_list = []
-        for sigma in sigmas:
-            try:
-                if len(sigma) == 3:
-                    anisotropy_list.append(True)
-                else:
-                    raise RuntimeError("Conductivity vector but not with size 3")
-            except TypeError:
-                anisotropy_list.append(False)
 
-        if not len(anisotropy_list) == 3:
-            raise RuntimeError("This should not happen?")
+        types = [type(self.sigma_T), type(self.sigma_S), type(self.sigma_S)]
 
-        if len(set(anisotropy_list)) != 1:
-            raise RuntimeError("Conductivities of different types.")
-        if np.all(anisotropy_list):
+        
+        if (list in types) or (np.ndarray in types):
             self.is_anisotropic = True
-        else:
-            self.is_anisotropic = False
-        if self.is_anisotropic:
+
+            if type(self.sigma_G) in [list, np.ndarray]:
+                if len(self.sigma_G) != 3:
+                    raise ValueError, "Conductivity vector but not with size 3"
+                self.sigma_G = np.array(self.sigma_G) #Just to be sure it's numpy array
+            else:
+                self.sigma_G = np.array([self.sigma_G, self.sigma_G, self.sigma_G])
+            if type(self.sigma_T) in [list, np.ndarray]:
+                if len(self.sigma_T) != 3:
+                    raise ValueError, "Conductivity vector but not with size 3"
+                self.sigma_T = np.array(self.sigma_T) #Just to be sure it's numpy array
+            else:
+                self.sigma_T = np.array([self.sigma_T, self.sigma_T, self.sigma_T])
+
+            if type(self.sigma_S) in [list, np.ndarray]:
+                if len(self.sigma_S) != 3:
+                    raise ValueError, "Conductivity vector but not with size 3"
+                self.sigma_S = np.array(self.sigma_S) #Just to be sure it's numpy array
+            else:
+                self.sigma_S = np.array([self.sigma_S, self.sigma_S, self.sigma_S])
+       
             self._anisotropic_saline_scaling()
-            
-            if not len(self.sigma_G) == len(self.sigma_T) == len(self.sigma_S):
-                raise RuntimeError("Conductivities of different dimensions!")
             if (self.sigma_G[0] == self.sigma_G[1] == self.sigma_G[2]) and \
                (self.sigma_T[0] == self.sigma_T[1] == self.sigma_T[2]) and \
                (self.sigma_S[0] == self.sigma_S[1] == self.sigma_S[2]):
-                print "Isotropic conductivities can be given as scalars."
-                #raise RuntimeError("Isotropic conductivities should be given as scalars!")
-            
-                
+                print "Isotropic conductivities can be given as scalars."         
+        else:
+            self.is_anisotropic = False
+ 
     def in_domain(self, elec_pos, charge_pos):
         """ Checks if elec_pos and charge_pos is within valid area.
         Otherwise raise exception."""
 
         # If inputs are single positions
-        #set_trace()
         if (np.array(elec_pos).shape == (3,)) and \
           (np.array(charge_pos).shape == (3,)):
             elec_pos = [elec_pos]
@@ -205,7 +213,7 @@ class MoI:
         """
         def _omega(dz):
             return 1/np.sqrt( (y - y0)**2 + (x - x0)**2 + dz**2) 
-        self.in_domain(elec_pos, charge_pos) # Check if valid positions
+        #self.in_domain(elec_pos, charge_pos) # Check if valid positions
         x0, y0, z0 = charge_pos[:]
         x, y, z = elec_pos[:]
         phi = _omega(z - z0)

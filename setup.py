@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+
+# sudo python setup.py install build_ext -i
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
