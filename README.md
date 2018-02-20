@@ -1,3 +1,9 @@
+    
+    Note that this approach has been implemented in LFPy2.0, and for most purposes we recommend using this software
+    https://github.com/LFPy/LFPy
+    
+    ----
+    
     '''Class for calculating the potential in a semi-infinite slice of neural tissue.
     Set-up:
 
